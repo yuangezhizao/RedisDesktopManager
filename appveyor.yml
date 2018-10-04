@@ -1,0 +1,73 @@
+environment:
+  auth_token:
+    secure: test
+  matrix:
+    prepare_mode: YES
+    name: win32-prepare
+    platform: amd64_x86
+    qt: msvc2015
+
+  
+install:
+
+# OpenSSL
+  - echo "Downloading OpenSSL"
+  - md c:\dev\openssl
+  - cd c:\dev\openssl
+  - if %qt%==msvc2015 curl -fsSL https://github.com/d1vanov/quentier-dependencies-windows/releases/download/continuous/openssl-1_0_2n-msvc2015_x86.zip -o openssl-1_0_2n-msvc2015_x86.zip
+  - if %qt%==msvc2015 7z x openssl-1_0_2n-msvc2015_x86.zip
+  - if %qt%==msvc2017_64 curl -fsSL https://github.com/d1vanov/quentier-dependencies-windows/releases/download/continuous/openssl-1_0_2n-msvc2017_x64.zip -o openssl-1_0_2n-msvc2017_x64.zip
+  - if %qt%==msvc2017_64 7z x openssl-1_0_2n-msvc2017_x64.zip
+  - if %qt%==mingw492_32 curl -fsSL https://github.com/d1vanov/quentier-dependencies-windows/releases/download/continuous/openssl-1_0_2n-mingw492_32_x86.zip -o openssl-1_0_2n-mingw492_32_x86.zip
+  - if %qt%==mingw492_32 7z x openssl-1_0_2n-mingw492_32_x86.zip
+  - set PATH=%cd%\bin;%PATH%
+  - set LIB=%cd%\lib;%LIB%
+  - set INCLUDE=%cd%\include;%INCLUDE%
+  - set OPENSSL_ROOT_DIR=%cd%
+
+
+build_script:
+  - git clone -q --depth=5 --branch=0.9 https://github.com/uglide/RedisDesktopManager.git C:\projects\redisdesktopmanager
+  - git checkout -qf 5fb73694346a48fc2f40268d7939e2a62a288b6e
+  - git submodule update --init --recursive
+  - set QTDIR=C:\Qt\5.9\msvc2015
+  - set PATH=%QTDIR%\bin;%PATH%
+  - echo %PATH%
+  - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
+  - powershell -command "iex ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/appveyor/secure-file/master/install.ps1'))"
+  - qmake -v
+  - set SRCDIR=%cd%
+  - cd ./3rdparty/qredisclient/3rdparty/qsshclient/3rdparty/libssh2
+  - cmake -G "Visual Studio 14 2015" -DCRYPTO_BACKEND=OpenSSL -DOPENSSL_ROOT_DIR=C:\OpenSSL-Win32\ -DBUILD_EXAMPLES=off -DBUILD_TESTING=off -H. -Bbuild
+  - cmake --build build --config "Release"
+  - cd %SRCDIR%
+  - python ./build/utils/set_version.py %APPVEYOR_BUILD_VERSION% > ./src/version.h
+  - python ./build/utils/set_version.py %APPVEYOR_BUILD_VERSION% > ./3rdparty/crashreporter/src/version.h
+  - cd ./3rdparty/crashreporter
+  - qmake CONFIG+=release DESTDIR=%SRCDIR%/bin/windows/release
+  - powershell -Command "(Get-Content Makefile.Release).replace('DEFINES       =', 'DEFINES       = -DAPP_NAME=\\\"RedisDesktopManager\\\" -DAPP_VERSION=\\\""%APPVEYOR_BUILD_VERSION%"\\\" -DCRASH_SERVER_URL=\\\"https://oops.redisdesktop.com/crash-report\\\"') " > Makefile.Release2
+  - nmake -f Makefile.Release2
+  - cd %SRCDIR%/src
+  - qmake CONFIG+=release
+  - nmake /S /NOLOGO release
+  - cd %SRCDIR%
+  - copy /y .\bin\windows\release\rdm.exe .\build\windows\installer\resources\rdm.exe
+  - copy /y .\bin\windows\release\rdm.pdb .\build\windows\installer\resources\rdm.pdb
+  - %SRCDIR%/3rdparty/gbreakpad/src/tools/windows/binaries/dump_syms .\bin\windows\release\rdm.pdb  > .\build\windows\installer\resources\rdm.sym
+  - cd build/windows/installer/resources/
+  - windeployqt --no-angle --no-opengl-sw --no-compiler-runtime --no-translations --release --force --qmldir %SRCDIR%/src/qml rdm.exe
+  
+  - rmdir /S /Q .\platforminputcontexts
+  - rmdir /S /Q .\qmltooling
+  - rmdir /S /Q .\QtGraphicalEffects
+  - del /Q  .\imageformats\qtiff.dll
+  - del /Q  .\imageformats\qwebp.dll
+  - cd %SRCDIR%
+  - call "C:\\Program Files (x86)\\NSIS\\makensis.exe" /V1 /DVERSION=%APPVEYOR_BUILD_VERSION%  ./build/windows/installer/installer.nsi
+  - appveyor-tools\secure-file -encrypt build/windows/installer/redis-desktop-manager-%APPVEYOR_BUILD_VERSION%.exe -secret %secret% || exit 0
+  - echo 'Windows build is used only for installer compilation. Skip tests.'
+
+
+artifacts:
+  - path: 'build\windows\installer\*.exe.enc'
+    name: installer
