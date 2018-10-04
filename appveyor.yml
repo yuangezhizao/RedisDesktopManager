@@ -8,7 +8,7 @@ install:
 - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
 - nuget install -Version 1.8.0 -OutputDirectory ./3rdparty/qredisclient/3rdparty/windows rmt_libssh2
 - qmake -v
- build_script:
+build_script:
 - set SRCDIR=%cd%
 - python ./build/utils/set_version.py %APPVEYOR_BUILD_VERSION% > ./src/version.h
 - python ./build/utils/set_version.py %APPVEYOR_BUILD_VERSION% > ./3rdparty/crashreporter/src/version.h
