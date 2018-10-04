@@ -7,31 +7,23 @@ environment:
     platform: amd64_x86
     qt: msvc2015
 
-  
-install:
-
-# OpenSSL
-  - echo "Downloading OpenSSL"
-  - md c:\dev\openssl
-  - cd c:\dev\openssl
-  - if %qt%==msvc2015 curl -fsSL https://github.com/d1vanov/quentier-dependencies-windows/releases/download/continuous/openssl-1_0_2n-msvc2015_x86.zip -o openssl-1_0_2n-msvc2015_x86.zip
-  - if %qt%==msvc2015 7z x openssl-1_0_2n-msvc2015_x86.zip
-  - if %qt%==msvc2017_64 curl -fsSL https://github.com/d1vanov/quentier-dependencies-windows/releases/download/continuous/openssl-1_0_2n-msvc2017_x64.zip -o openssl-1_0_2n-msvc2017_x64.zip
-  - if %qt%==msvc2017_64 7z x openssl-1_0_2n-msvc2017_x64.zip
-  - if %qt%==mingw492_32 curl -fsSL https://github.com/d1vanov/quentier-dependencies-windows/releases/download/continuous/openssl-1_0_2n-mingw492_32_x86.zip -o openssl-1_0_2n-mingw492_32_x86.zip
-  - if %qt%==mingw492_32 7z x openssl-1_0_2n-mingw492_32_x86.zip
-  - set PATH=%cd%\bin;%PATH%
-  - set LIB=%cd%\lib;%LIB%
-  - set INCLUDE=%cd%\include;%INCLUDE%
-  - set OPENSSL_ROOT_DIR=%cd%
 
 
 build_script:
   - git clone -q --depth=5 --branch=0.9 https://github.com/uglide/RedisDesktopManager.git C:\projects\redisdesktopmanager
   - git checkout -qf 5fb73694346a48fc2f40268d7939e2a62a288b6e
   - git submodule update --init --recursive
+  
+  - echo "Downloading OpenSSL"
+  - curl -fsSL https://github.com/d1vanov/quentier-dependencies-windows/releases/download/continuous/openssl-1_0_2n-msvc2015_x86.zip -o openssl-1_0_2n-msvc2015_x86.zip
+  - 7z x openssl-1_0_2n-msvc2015_x86.zip
+  - set PATH=%cd%\bin;%PATH%
+  - set LIB=%cd%\lib;%LIB%
+  - set INCLUDE=%cd%\include;%INCLUDE%
+  - set OPENSSL_ROOT_DIR=%cd%
+  
   - set QTDIR=C:\Qt\5.9\msvc2015
-  - set PATH=%QTDIR%\bin;%PATH%
+  - set PATH=%QTDIR%\bin;%PATH%;%OPENSSL_ROOT_DIR%;C:\Qt\5.9\bin\qmake.exe;
   - echo %PATH%
   - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
   - powershell -command "iex ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/appveyor/secure-file/master/install.ps1'))"
