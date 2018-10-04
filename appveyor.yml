@@ -28,7 +28,8 @@ build_script:
 - cd %SRCDIR%
 - copy /y .\bin\windows\release\rdm.exe .\build\windows\installer\resources\rdm.exe
 - copy /y .\bin\windows\release\rdm.pdb .\build\windows\installer\resources\rdm.pdb
-- %SRCDIR%/3rdparty/gbreakpad/src/tools/windows/binaries/dump_syms .\bin\windows\release\rdm.pdb  > .\build\windows\installer\resources\rdm.sym
+- %SRCDIR%/3rdparty/gbreakpad/src/tools/windows/binaries/dump_syms .\bin\windows\release\rdm.pdb  >
+- .\build\windows\installer\resources\rdm.sym
 - cd build/windows/installer/resources/
 - windeployqt --no-angle --no-opengl-sw --no-compiler-runtime --no-translations --release --force --qmldir %SRCDIR%/src/qml rdm.exe
 
